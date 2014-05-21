@@ -9,13 +9,12 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class GraphicsMagickResizer(maxLongSide: Integer) {
-  lazy val log = LoggerFactory.getLogger(classOf[GraphicsMagickResizer])
 
-  def apply(srcPath: Path) {
-    val config = new GMConnectionPoolConfig()
-    val gm = new PooledGMService(config)
+  def apply(service: PooledGMService, srcPath: Path) = {
+    lazy val log = LoggerFactory.getLogger(classOf[GraphicsMagickResizer])
 
     try {
+      println("starting")
       val thumbnailPath = Files.createTempFile("thumbnail", ".jpg").toAbsolutePath()
       val imgIn: BufferedImage = ImageIO.read(srcPath.toFile())
 
@@ -27,7 +26,7 @@ class GraphicsMagickResizer(maxLongSide: Integer) {
         Math.min(this.maxLongSide, imgIn.getHeight()) / imgIn.getHeight().toDouble
       }
 
-      gm.execute("convert",
+      service.execute("convert",
                  srcPath.toString(),
                  "-resize", Math.round(100 * scale) + "%",
                  thumbnailPath.toString())
@@ -42,8 +41,12 @@ class GraphicsMagickResizer(maxLongSide: Integer) {
 
 object Converter {
   def main(args: Array[String]) = {
+    val config = new GMConnectionPoolConfig()
+    val service = new PooledGMService(config)
+
     val c = new GraphicsMagickResizer(200)
-    val path = Paths.get(args(0))
-    c.apply(path)
+    for(path <- args) {
+      c.apply(service, Paths.get(path))
+    }
   }
 }
