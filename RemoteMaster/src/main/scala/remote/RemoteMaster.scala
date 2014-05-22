@@ -1,3 +1,5 @@
+package remote
+
 import org.gm4java.engine.support.GMConnectionPoolConfig
 import org.gm4java.engine.support.PooledGMService
 import org.slf4j._
@@ -8,7 +10,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import akka.actor.{ActorSystem, ActorLogging, Actor, Props}
+// import akka.actor.{ActorSystem, ActorLogging, Actor, Props}
+import akka.actor._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -16,7 +19,6 @@ import scala.collection.mutable.ArrayBuffer
 case class ImageResize(service: PooledGMService, srcPath: Path, maxLongSide: Int)
 // a new image that has completed processing
 case class AdditionalImage(newSrcPath: Path)
-case class WorkerReady()
 
 class ImageProcessor extends Actor with ActorLogging {
   def receive = {
@@ -47,48 +49,60 @@ class ImageProcessor extends Actor with ActorLogging {
   }
 }
 
-class Master(var imagePaths: ArrayBuffer[String], service: PooledGMService) extends Actor with ActorLogging {
+class RemoteMaster(system: ActorSystem, service: PooledGMService, numWorkers: Int) extends Actor with ActorLogging {
+  // 4-5 workers seems to be the limit on my machine for a single JVM (`java.lang.OutOfMemoryError: Java heap space` otherwise)
+  val workers = makeWorkers(numWorkers, system)
+
+  var imgQueue = ArrayBuffer[String]()
+
   def receive = {
-    case WorkerReady =>
-      val path = Paths.get(imagePaths.remove(0))
-      sender ! ImageResize(service, path, 200)
+    case msg: String =>
+      println(s"RemoteMaster received message '$msg'")
+    case imagePaths: Array[String] =>
+      // The initialization case (LocalMaster sends array of image paths)
+      for(path <- imagePaths) { imgQueue += path }
+
+      for(worker <- workers) {
+        val path = Paths.get(imgQueue.remove(0))
+        worker ! ImageResize(service, path, 200)
+      }
     case AdditionalImage(thumbnailPath: Path) =>
       log.info("Thumbnail was saved to {}", thumbnailPath)
       println(thumbnailPath)
-      if(imagePaths.isEmpty) {
+      if(imgQueue.isEmpty) {
         context.system.shutdown()
       } else {
-        val path = Paths.get(imagePaths.remove(0))
+        val path = Paths.get(imgQueue.remove(0))
         sender ! ImageResize(service, path, 200)
       }
   }
-}
 
-object Manager extends App {
-  override def main(args: Array[String]) = {
-    val config = new GMConnectionPoolConfig()
-    val service = new PooledGMService(config)
-
-    val system = ActorSystem("converters")
-
-    var mutableArray = ArrayBuffer[String]()
-    for(path <- args) { mutableArray += path }
-
-    val master = system.actorOf(Props(new Master(mutableArray, service) ), "master")
-    // 5 workers seems to be the limit on my machine (`java.lang.OutOfMemoryError: Java heap space` otherwise)
-    // Is this a limitation of the number of cores?
-    val worker1 = system.actorOf(Props( new ImageProcessor ), "worker1")
-    val worker2 = system.actorOf(Props( new ImageProcessor ), "worker2")
-    val worker3 = system.actorOf(Props( new ImageProcessor ), "worker3")
-    val worker4 = system.actorOf(Props( new ImageProcessor ), "worker4")
-    val worker5 = system.actorOf(Props( new ImageProcessor ), "worker5")
-
-    master.tell(WorkerReady, worker1)
-    master.tell(WorkerReady, worker2)
-    master.tell(WorkerReady, worker3)
-    master.tell(WorkerReady, worker4)
-    master.tell(WorkerReady, worker5)
-
-    system.awaitTermination()
+  def makeWorkers(n: Int, system: ActorSystem) = {
+    def go(acc: Array[ActorRef], n: Int): Array[ActorRef] = {
+      if (0 == n)
+        acc
+      else {
+        val next: Array[ActorRef] = Array(system.actorOf(Props[ImageProcessor], "worker".concat(n.toString)))
+        go(next ++ acc, n - 1)
+      }
+    }
+    val empty: Array[ActorRef] = Array()
+    go(empty, n)
   }
 }
+
+// Initialization for JVM here
+object Remote extends App {
+  // move this into RemoteMaster?
+  // val remoteMaster = system.actorOf(Props[RemoteMaster], name = "RemoteMaster")
+  val config = new GMConnectionPoolConfig()
+  val service = new PooledGMService(config)
+
+  val system = ActorSystem("RemoteSystem")
+
+  val master = system.actorOf(Props(new RemoteMaster(system, service, 4) ), "RemoteMaster")
+  master ! "Live and breathe"
+}
+
+
+
