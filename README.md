@@ -1,4 +1,4 @@
-## Singlet
+## [Singlet](https://en.wikipedia.org/wiki/Singlet_state)
 
 An image converting utility.
 
