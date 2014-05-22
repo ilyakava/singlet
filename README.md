@@ -4,6 +4,8 @@ An image converting utility.
 
 ### Performance
 
+All tests are run three times in a row, with the mediam time displayed here.
+
 #### 37 x 30MB images (total 1.09 GB)
 <sub>localdir `Documents/doublet/test_images/avg_size`</sub>
 
@@ -16,10 +18,11 @@ Old Parallel akka version with 5 workers (commit: ab97939):
 ```
 real    0m43.117s
 ```
+(with 4 workers was 2 seconds slower)
 
 Latest Version (two instances of RemoteMaster each w/ 4 workers)
 ```
-real    0m37.997s
+real    0m34.700s
 ```
 
 ### Usage
