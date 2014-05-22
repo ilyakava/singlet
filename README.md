@@ -21,6 +21,18 @@ user    1m41.265s
 sys 0m1.932s
 ```
 
+Running two instances of the app locally (2 windows each with their own JVM, so 74 x 30MB images):
+```
+- window1:
+real    1m2.443s
+user    1m54.916s
+sys 0m2.172s
+- window2:
+real    1m2.170s
+user    1m50.417s
+sys 0m2.394s
+```
+
 ### Usage
 
 run `sbt 'run "/Users/me/Pictures/photo.jpg" "/Users/me/Pictures/diff_photo.jpg"'` in the root directory to convert the two images in parallel.
