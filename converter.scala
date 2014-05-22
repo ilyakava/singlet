@@ -10,12 +10,13 @@ import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, ActorLogging, Actor, Props}
 
-import util.Random.nextInt
+import scala.collection.mutable.ArrayBuffer
 
 // a request to resize an image
 case class ImageResize(service: PooledGMService, srcPath: Path, maxLongSide: Int)
 // a new image that has completed processing
 case class AdditionalImage(newSrcPath: Path)
+case class WorkerReady()
 
 class ImageProcessor extends Actor with ActorLogging {
   def receive = {
@@ -38,12 +39,28 @@ class ImageProcessor extends Actor with ActorLogging {
                    "-resize", Math.round(100 * scale) + "%",
                    thumbnailPath.toString())
 
-        log.info("Thumbnail was saved to {}", thumbnailPath)
-        println(thumbnailPath)
+        sender ! AdditionalImage(thumbnailPath)
       } catch { case ex: Exception =>
         println(ex.getMessage())
           throw new IllegalStateException(ex.getMessage(), ex)
     }
+  }
+}
+
+class Master(var imagePaths: ArrayBuffer[String], service: PooledGMService) extends Actor with ActorLogging {
+  def receive = {
+    case WorkerReady =>
+      val path = Paths.get(imagePaths.remove(0))
+      sender ! ImageResize(service, path, 200)
+    case AdditionalImage(thumbnailPath: Path) =>
+      log.info("Thumbnail was saved to {}", thumbnailPath)
+      println(thumbnailPath)
+      if(imagePaths.isEmpty) {
+        context.system.shutdown()
+      } else {
+        val path = Paths.get(imagePaths.remove(0))
+        sender ! ImageResize(service, path, 200)
+      }
   }
 }
 
@@ -54,9 +71,24 @@ object Manager extends App {
 
     val system = ActorSystem("converters")
 
-    for(path <- args) {
-      system.actorOf(Props( new ImageProcessor ), nextInt.toString) ! ImageResize(service, Paths.get(path), 200)
-    }
-    system.shutdown()
+    var mutableArray = ArrayBuffer[String]()
+    for(path <- args) { mutableArray += path }
+
+    val master = system.actorOf(Props(new Master(mutableArray, service) ), "master")
+    // 5 workers seems to be the limit on my machine (`java.lang.OutOfMemoryError: Java heap space` otherwise)
+    // Is this a limitation of the number of cores?
+    val worker1 = system.actorOf(Props( new ImageProcessor ), "worker1")
+    val worker2 = system.actorOf(Props( new ImageProcessor ), "worker2")
+    val worker3 = system.actorOf(Props( new ImageProcessor ), "worker3")
+    val worker4 = system.actorOf(Props( new ImageProcessor ), "worker4")
+    val worker5 = system.actorOf(Props( new ImageProcessor ), "worker5")
+
+    master.tell(WorkerReady, worker1)
+    master.tell(WorkerReady, worker2)
+    master.tell(WorkerReady, worker3)
+    master.tell(WorkerReady, worker4)
+    master.tell(WorkerReady, worker5)
+
+    system.awaitTermination()
   }
 }
