@@ -66,9 +66,12 @@ class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with Acto
       // The initialization case (LocalMaster sends array of image paths)
       for(path <- imagePaths) { imgQueue += path }
 
+      // don't try to queue all workers if few images are given
       for(worker <- workers) {
-        val path = Paths.get(imgQueue.remove(0))
-        worker ! ImageResize(service, path, 200)
+        if (!imgQueue.isEmpty) {
+          val path = Paths.get(imgQueue.remove(0))
+          worker ! ImageResize(service, path, 200)
+        }
       }
     case AdditionalImage(thumbnailPath: Path) =>
       log.info("Thumbnail was saved to {}", thumbnailPath)

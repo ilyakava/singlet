@@ -22,8 +22,8 @@ class LocalMaster(numRemoteMachines: Int) extends Actor {
   def receive = {
     case paths: Array[String] =>
       // split up among remoteMasters in the future
-      val groupedPaths = groups(paths, remoteMasters.length)
-      for (i <- 0 to (remoteMasters.length - 1)) {
+      val groupedPaths = groups(paths, numRemoteMachines)
+      for (i <- 0 to (numRemoteMachines - 1)) {
         remoteMasters(i) ! groupedPaths(i)
       }
     case msg: String =>
