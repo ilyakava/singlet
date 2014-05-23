@@ -12,6 +12,7 @@ import java.nio.file.Paths
 
 // import akka.actor.{ActorSystem, ActorLogging, Actor, Props}
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -49,7 +50,9 @@ class ImageProcessor extends Actor with ActorLogging {
   }
 }
 
-class RemoteMaster(system: ActorSystem, service: PooledGMService, numWorkers: Int) extends Actor with ActorLogging {
+class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with ActorLogging {
+  val config = new GMConnectionPoolConfig()
+  val service = new PooledGMService(config)
   // 4-5 workers seems to be the limit on my machine for a single JVM (`java.lang.OutOfMemoryError: Java heap space` otherwise)
   val workers = makeWorkers(numWorkers, system)
 
@@ -59,6 +62,7 @@ class RemoteMaster(system: ActorSystem, service: PooledGMService, numWorkers: In
     case msg: String =>
       println(s"RemoteMaster received message '$msg'")
     case imagePaths: Array[String] =>
+      println("Remote Master is queuing {} images", imagePaths.length)
       // The initialization case (LocalMaster sends array of image paths)
       for(path <- imagePaths) { imgQueue += path }
 
@@ -91,17 +95,22 @@ class RemoteMaster(system: ActorSystem, service: PooledGMService, numWorkers: In
   }
 }
 
-// Initialization for JVM here
 object Remote extends App {
-  // move this into RemoteMaster?
-  // val remoteMaster = system.actorOf(Props[RemoteMaster], name = "RemoteMaster")
-  val config = new GMConnectionPoolConfig()
-  val service = new PooledGMService(config)
+  override def main(args: Array[String]) {
+    val masterNumber = args(0)
+    val masterPort = 5150 + masterNumber.toInt
+    val numWorkers = args(1).toInt
 
-  val system = ActorSystem("RemoteSystem")
+    // dynamically set the port of the remote master
+    val customAkkaConfig = ConfigFactory.parseString("akka.remote.netty.tcp.port=".concat(masterPort.toString))
+    val defaultAkkaConfig = ConfigFactory.load.getConfig("remotesystem")
+    val akkaConfig = ConfigFactory.load(customAkkaConfig.withFallback(defaultAkkaConfig))
 
-  val master = system.actorOf(Props(new RemoteMaster(system, service, 4) ), "RemoteMaster")
-  master ! "Live and breathe"
+    val system = ActorSystem("remotesystem", akkaConfig)
+
+    val master = system.actorOf(Props(new RemoteMaster(system, numWorkers) ), "RemoteMaster".concat(masterNumber))
+    master ! "Live and breathe"
+  }
 }
 
 

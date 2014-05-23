@@ -4,18 +4,18 @@ import akka.actor._
 
 object Local extends App {
   override def main(args: Array[String]) = {
+    // LocalMaster needs to know how many machines there are. It makes assumptions
+    // on the names and ports of where those machines are based on the number
+    val numRemoteMachines = args.head.toInt
     val system = ActorSystem("LocalSystem")
-    val localMaster = system.actorOf(Props( new LocalMaster ), name = "LocalMaster")
-    localMaster ! args
+    val localMaster = system.actorOf(Props( new LocalMaster(numRemoteMachines) ), name = "LocalMaster")
+    localMaster ! args.tail
   }
 }
 
-class LocalMaster extends Actor {
-  // create the remote actor
-  val remoteMasters = List(
-    context.actorFor("akka.tcp://RemoteSystem@127.0.0.1:5150/user/RemoteMaster"),
-    context.actorFor("akka.tcp://RemoteSystem@127.0.0.1:5151/user/RemoteMaster2")
-  )
+class LocalMaster(numRemoteMachines: Int) extends Actor {
+  // register the location of the remote machines
+  val remoteMasters = makeRemotes(numRemoteMachines)
 
   def receive = {
     case paths: Array[String] =>
@@ -45,6 +45,24 @@ class LocalMaster extends Actor {
     }
     val empty: List[Array[A]] = List()
     go(empty, 0)
+  }
+
+  // make an array of remote systems
+  def makeRemotes(n: Int) = {
+    def go(acc: Array[ActorRef], n: Int): Array[ActorRef] = {
+      if (0 == n)
+        acc
+      else {
+        val nextLocation = "akka.tcp://remotesystem@127.0.0.1:"
+          .concat((5150 + n).toString)
+          .concat("/user/RemoteMaster")
+          .concat(n.toString)
+        val next: Array[ActorRef] = Array(context.actorFor(nextLocation))
+        go(next ++ acc, n - 1)
+      }
+    }
+    val empty: Array[ActorRef] = Array()
+    go(empty, n)
   }
 }
 

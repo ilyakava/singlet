@@ -27,12 +27,19 @@ real    0m34.700s
 
 ### Usage
 
+#### An example with 2 JVMs for Workers, each with 4 Actors within them
+
 Open 3 terminal widows:
 
-* In window 1, `cd singlet/RemoteMaster && sbt run`
-* In window 2, `cd singlet/RemoteMaster2 && sbt run`
+* In window 1, `cd singlet/RemoteMaster && sbt 'run "1" "4"'`
+    * this is the 1st Remote worker manager
+* In window 2, `cd singlet/RemoteMaster && sbt 'run "2" "4"'`
+    * this is the 2nd Remote worker manager
 * In window 3, `cd singlet/LocalMaster`
-* and then, within widow 3, type `sbt 'run "/Users/me/Pictures/photo.jpg" "/Users/me/Pictures/diff_photo.jpg"'` in the root directory to convert these two images in parallel.
+* and then, within widow 3, type `sbt 'run "2" "/Users/me/Pictures/photo.jpg" "/Users/me/Pictures/diff_photo.jpg"'` to convert these two images in parallel.
+    * we are telling the local master that there are 2 remote worker managers
+
+The example above can be done with more/less Remote worker managers, each with their own number of Actors (this is capped by how much memory you have availible for each JVM).
 
 ### Development
 
