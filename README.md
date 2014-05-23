@@ -25,6 +25,37 @@ Latest Version (two instances of RemoteMaster each w/ 4 workers)
 real    0m34.700s
 ```
 
+#### 100 x 30MB images (total 3.09 GB)
+
+Latest Version (2 instances of RemoteMaster each w/ 4 workers)
+```
+1m51.552s
+```
+
+Latest Version (3 instances of RemoteMaster each w/ 3 workers)
+```
+1m39.190s
+```
+
+Latest Version (4 instances of RemoteMaster each w/ 2 workers)
+```
+1m39.871s
+```
+
+Latest Version (4 instances of RemoteMaster each w/ 3 workers)
+```
+1m34.310s
+```
+
+Latest Version (4 instances of RemoteMaster 2 w/ 4 workers, 2 w/ 3)
+(4 w /4 failed)
+```
+1m32.502s
+```
+#### Notes
+
+Running gm in batch mode from the command line only spawns a single process. My code spawns 1 per actor.
+
 ### Usage
 
 #### An example with 2 JVMs for Workers, each with 4 Actors within them

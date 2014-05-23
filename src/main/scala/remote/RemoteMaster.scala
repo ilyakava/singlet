@@ -62,8 +62,9 @@ class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with Acto
     case msg: String =>
       println(s"RemoteMaster received message '$msg'")
     case imagePaths: Array[String] =>
-      println("Remote Master is queuing {} images", imagePaths.length)
       // The initialization case (LocalMaster sends array of image paths)
+      val numImages = imagePaths.length.toString
+      println(s"Remote Master is queuing '$numImages' images")
       for(path <- imagePaths) { imgQueue += path }
 
       // don't try to queue all workers if few images are given
