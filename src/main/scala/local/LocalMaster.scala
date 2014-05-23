@@ -1,13 +1,15 @@
 package local
 
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 
 object Local extends App {
   override def main(args: Array[String]) = {
     // LocalMaster needs to know how many machines there are. It makes assumptions
     // on the names and ports of where those machines are based on the number
     val numRemoteMachines = args.head.toInt
-    val system = ActorSystem("LocalSystem")
+    val akkaConfig = ConfigFactory.load.getConfig("localsystem")
+    val system = ActorSystem("localsystem", akkaConfig)
     val localMaster = system.actorOf(Props( new LocalMaster(numRemoteMachines) ), name = "LocalMaster")
     localMaster ! args.tail
   }
