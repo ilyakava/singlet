@@ -20,41 +20,38 @@ real    0m43.117s
 ```
 (with 4 workers was 2 seconds slower)
 
-Latest Version (two instances of RemoteMaster each w/ 4 workers)
+Version: e1a34b9 (two instances of RemoteMaster each w/ 4 workers)
 ```
 real    0m34.700s
 ```
 
 #### 100 x 30MB images (total 3.09 GB)
 
-Latest Version (2 instances of RemoteMaster each w/ 4 workers)
+Version: e1a34b9 (2 instances of RemoteMaster each w/ 4 workers)
 ```
 1m51.552s
 ```
 
-Latest Version (3 instances of RemoteMaster each w/ 3 workers)
+Version: e1a34b9 (3 instances of RemoteMaster each w/ 3 workers)
 ```
 1m39.190s
 ```
 
-Latest Version (4 instances of RemoteMaster each w/ 2 workers)
+Version: e1a34b9 (4 instances of RemoteMaster each w/ 2 workers)
 ```
 1m39.871s
 ```
 
-Latest Version (4 instances of RemoteMaster each w/ 3 workers)
+Version: e1a34b9 (4 instances of RemoteMaster each w/ 3 workers)
 ```
 1m34.310s
 ```
 
-Latest Version (4 instances of RemoteMaster 2 w/ 4 workers, 2 w/ 3)
+Version: e1a34b9 (4 instances of RemoteMaster 2 w/ 4 workers, 2 w/ 3)
 (4 w /4 failed)
 ```
 1m32.502s
 ```
-#### Notes
-
-Running gm in batch mode from the command line only spawns a single process. My code spawns 1 per actor.
 
 ### Usage
 
@@ -81,3 +78,4 @@ requires Java JDK 7 for `java.nio`, get it [here](http://www.oracle.com/technetw
 
 * [Actors in general](http://www.reactive.io/tips/2014/03/28/getting-started-with-actor-based-programming-using-scala-and-akka/)
 * [Remote actors](http://alvinalexander.com/scala/simple-akka-actors-remote-example)
+* [gm4java docs](http://sharneng.github.io/gm4java/doc/1.1.0/allclasses-noframe.html)
