@@ -2,28 +2,9 @@
 
 An image converting utility.
 
-### Performance
+### Performance Tests
 
 All tests are run three times in a row, with the mediam time displayed here.
-
-#### 37 x 30MB images (total 1.09 GB)
-<sub>localdir `Documents/doublet/test_images/avg_size`</sub>
-
-Running serially (version in the 2nd commit: e2b7af8)
-```
-real    1m58.674s
-```
-
-Old Parallel akka version with 5 workers (commit: ab97939):
-```
-real    0m43.117s
-```
-(with 4 workers was 2 seconds slower)
-
-Version: e1a34b9 (two instances of RemoteMaster each w/ 4 workers)
-```
-real    0m34.700s
-```
 
 #### 100 x 30MB images (total 3.09 GB)
 
@@ -51,6 +32,33 @@ Version: e1a34b9 (4 instances of RemoteMaster 2 w/ 4 workers, 2 w/ 3)
 (4 w /4 failed)
 ```
 1m32.502s
+```
+
+**Latest Version** (4 instances of RemoteMaster 2 w/ 4 workers, 2 w/ 3)
+```
+0m30.991s
+```
+Wow, 3x improvement! What changed here was using the gm command `scale` instead of `resize` (at the suggestion of gm4java's author. The big difference is partly because the image no longer needs its dimensions checked since scale takes an output resulution while resize takes a percentage)
+
+### Old tests
+
+#### 37 x 30MB images (total 1.09 GB)
+<sub>localdir `Documents/doublet/test_images/avg_size`</sub>
+
+Running serially (version in the 2nd commit: e2b7af8)
+```
+real    1m58.674s
+```
+
+Old Parallel akka version with 5 workers (commit: ab97939):
+```
+real    0m43.117s
+```
+(with 4 workers was 2 seconds slower)
+
+Version: e1a34b9 (two instances of RemoteMaster each w/ 4 workers)
+```
+real    0m34.700s
 ```
 
 ### Usage

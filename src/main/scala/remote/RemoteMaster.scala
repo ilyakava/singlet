@@ -4,43 +4,30 @@ import org.gm4java.engine.support.GMConnectionPoolConfig
 import org.gm4java.engine.support.PooledGMService
 import org.slf4j._
 
-import javax.imageio.ImageIO
-import java.awt.image.BufferedImage
 import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 
-// import akka.actor.{ActorSystem, ActorLogging, Actor, Props}
-import akka.actor._
+import akka.actor.{ActorSystem, ActorLogging, Actor, Props, ActorRef}
 import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.ArrayBuffer
 
 // a request to resize an image
-case class ImageResize(service: PooledGMService, srcPath: Path, maxLongSide: Int)
+case class ImageResize(service: PooledGMService, srcPath: String, maxLongSide: Int)
 // a new image that has completed processing
-case class AdditionalImage(newSrcPath: Path)
+case class AdditionalImage(newSrcPath: String)
 
 class ImageProcessor extends Actor with ActorLogging {
   def receive = {
-    case ImageResize(service: PooledGMService, srcPath: Path, maxLongSide: Int) =>
+    case ImageResize(service: PooledGMService, srcPath: String, maxLongSide: Int) =>
       try {
         println("starting")
-        val thumbnailPath = Files.createTempFile("thumbnail", ".jpg").toAbsolutePath()
-        val imgIn: BufferedImage = ImageIO.read(srcPath.toFile())
-
-        val scale = if (imgIn.getWidth() >= imgIn.getHeight()) {
-          // horizontal or square image
-          Math.min(maxLongSide, imgIn.getWidth()) / imgIn.getWidth().toDouble
-        } else {
-          // vertical image
-          Math.min(maxLongSide, imgIn.getHeight()) / imgIn.getHeight().toDouble
-        }
+        val thumbnailPath = Files.createTempFile("thumbnail", ".jpg").toString
 
         service.execute("convert",
-                   srcPath.toString(),
-                   "-resize", Math.round(100 * scale) + "%",
-                   thumbnailPath.toString())
+                   srcPath,
+                   "-scale",
+                   maxLongSide + "x" + maxLongSide,
+                   thumbnailPath)
 
         sender ! AdditionalImage(thumbnailPath)
       } catch { case ex: Exception =>
@@ -70,17 +57,17 @@ class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with Acto
       // don't try to queue all workers if few images are given
       for(worker <- workers) {
         if (!imgQueue.isEmpty) {
-          val path = Paths.get(imgQueue.remove(0))
+          val path = imgQueue.remove(0)
           worker ! ImageResize(service, path, 200)
         }
       }
-    case AdditionalImage(thumbnailPath: Path) =>
+    case AdditionalImage(thumbnailPath: String) =>
       log.info("Thumbnail was saved to {}", thumbnailPath)
       println(thumbnailPath)
       if(imgQueue.isEmpty) {
         context.system.shutdown()
       } else {
-        val path = Paths.get(imgQueue.remove(0))
+        val path = imgQueue.remove(0)
         sender ! ImageResize(service, path, 200)
       }
   }

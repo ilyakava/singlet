@@ -1,6 +1,6 @@
 package local
 
-import akka.actor._
+import akka.actor.{ActorSystem, ActorLogging, Actor, Props, ActorRef}
 import com.typesafe.config.ConfigFactory
 
 import helper._
@@ -17,7 +17,7 @@ object Local extends App {
   }
 }
 
-class LocalMaster(numRemoteMachines: Int) extends Actor {
+class LocalMaster(numRemoteMachines: Int) extends Actor with ActorLogging {
   // register the location of the remote machines
   val remoteMasters = makeRemotes(numRemoteMachines)
 
