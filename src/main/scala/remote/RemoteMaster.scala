@@ -1,7 +1,7 @@
 package remote
 
-import org.gm4java.engine.support.GMConnectionPoolConfig
-import org.gm4java.engine.support.PooledGMService
+import org.gm4java.engine.GMConnection
+import org.gm4java.engine.support.SimpleGMService
 import org.slf4j._
 
 import java.nio.file.Files
@@ -12,13 +12,15 @@ import com.typesafe.config.ConfigFactory
 import scala.collection.mutable.ArrayBuffer
 
 // a request to resize an image
-case class ImageResize(service: PooledGMService, srcPath: String, maxLongSide: Int)
+case class ImageResize(srcPath: String, maxLongSide: Int)
 // a new image that has completed processing
 case class AdditionalImage(newSrcPath: String)
 
 class ImageProcessor extends Actor with ActorLogging {
+  val service = new SimpleGMService().getConnection()
+
   def receive = {
-    case ImageResize(service: PooledGMService, srcPath: String, maxLongSide: Int) =>
+    case ImageResize(srcPath: String, maxLongSide: Int) =>
       try {
         println("starting")
         val thumbnailPath = Files.createTempFile("thumbnail", ".jpg").toString
@@ -38,8 +40,6 @@ class ImageProcessor extends Actor with ActorLogging {
 }
 
 class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with ActorLogging {
-  val config = new GMConnectionPoolConfig()
-  val service = new PooledGMService(config)
   // 4-5 workers seems to be the limit on my machine for a single JVM (`java.lang.OutOfMemoryError: Java heap space` otherwise)
   val workers = makeWorkers(numWorkers, system)
 
@@ -58,7 +58,7 @@ class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with Acto
       for(worker <- workers) {
         if (!imgQueue.isEmpty) {
           val path = imgQueue.remove(0)
-          worker ! ImageResize(service, path, 200)
+          worker ! ImageResize(path, 200)
         }
       }
     case AdditionalImage(thumbnailPath: String) =>
@@ -68,7 +68,7 @@ class RemoteMaster(system: ActorSystem, numWorkers: Int) extends Actor with Acto
         context.system.shutdown()
       } else {
         val path = imgQueue.remove(0)
-        sender ! ImageResize(service, path, 200)
+        sender ! ImageResize(path, 200)
       }
   }
 
