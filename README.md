@@ -125,3 +125,10 @@ requires Java JDK 7 for `java.nio`, get it [here](http://www.oracle.com/technetw
 - [ ] stability: processing should recover, no matter how large or corrupt an original
     - [ ] On failure re-queuing of an image with actors is easy. Actors provide great encapsulation for individual image failures. *Demo of this is coming*
 - [ ] feasible migration path for legacy images
+
+
+## License
+
+(c) Artsy, 2015 + Ilya Kavalerov
+
+MIT
